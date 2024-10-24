@@ -12,6 +12,10 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
 import java.util.Set;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 public class DrTurnosGUI extends JFrame {
     private JTable table;
@@ -62,11 +66,48 @@ public class DrTurnosGUI extends JFrame {
         addButton(buttonPanel, "Obras Sociales", e -> openObrasSocialesGUI());
         addButton(buttonPanel, "Agregar/Modificar", e -> openModificarTurnoGUI());
         addButton(buttonPanel, "Eliminar", e -> limpiarCamposSeleccionados());
+        addButton(buttonPanel, "Reporte", e -> exportarTablaExcel());
         addButton(buttonPanel, "Cerrar", e -> Cerrar());
 
         add(buttonPanel, BorderLayout.SOUTH);
     }
 
+     // Método para exportar la tabla a Excel
+    private void exportarTablaExcel() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Guardar como");
+
+        int userSelection = fileChooser.showSaveDialog(this);
+        if (userSelection == JFileChooser.APPROVE_OPTION) {
+            try (Workbook workbook = new XSSFWorkbook()) {
+                Sheet sheet = workbook.createSheet("turnos.txt");
+                Row headerRow = sheet.createRow(0);
+
+                // Exportar encabezados
+                for (int i = 0; i < model.getColumnCount(); i++) {
+                    headerRow.createCell(i).setCellValue(model.getColumnName(i));
+                }
+
+                // Exportar filas
+                for (int row = 0; row < model.getRowCount(); row++) {
+                    Row excelRow = sheet.createRow(row + 1);
+                    for (int col = 0; col < model.getColumnCount(); col++) {
+                        Object value = model.getValueAt(row, col);
+                        excelRow.createCell(col).setCellValue(value != null ? value.toString() : "");
+                    }
+                }
+
+                // Guardar archivo
+                String filePath = fileChooser.getSelectedFile().getAbsolutePath() + ".xlsx";
+                try (FileOutputStream fileOut = new FileOutputStream(filePath)) {
+                    workbook.write(fileOut);
+                    JOptionPane.showMessageDialog(this, "Exportación exitosa a: " + filePath);
+                }
+            } catch (IOException e) {
+                showError("Error al exportar: " + e.getMessage());
+            }
+        }
+    }
     private void addButton(Container container, String text, ActionListener listener) {
         JButton button = new JButton(text);
         button.addActionListener(listener);
